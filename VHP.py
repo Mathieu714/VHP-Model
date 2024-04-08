@@ -4,11 +4,9 @@ import math
 from numpy import linalg
 import numpy as np
 
-# This version rewrote empower logic
-
 
 # y = a_1x^n + a_2x^n + a_3x^n+ ... + a_nx^n
-# info structure: [ [a1, a2, a3, ...], [n, n, n, ...] ]: [ [weight_array], [power_array] ]
+# info structure - Augmented Array: [ [a1, a2, a3, ...], [n1, n2, n3, ...] ] = [ [weight_array], [power_array] ]
 # data structure: [ x1, x2, x3, ..., xn, y]
 
 AlterPowerError = Exception()
@@ -20,7 +18,7 @@ seed = None
 
 
 def calc(data_array, weight_array, power_array):
-    # returns calculated y
+    # calculates the output y based on given data array with weight/power arrays
     y = 0
     for i in range(0, len(data_array)):
         y += (data_array[i] ** power_array[i]) * weight_array[i]
@@ -29,28 +27,19 @@ def calc(data_array, weight_array, power_array):
 
 
 def percent_acc(obj, center):
+    # calculates percentage error of object with respect to center
     error = abs(obj - center)
-    mod_obj = center - error
+    modified_obj = center - error
 
-    # if mod_obj < 0:
-    #     raise EvaluationError
+    if modified_obj < 0:
+        raise EvaluationError
 
     percent = mod_obj / center
     return percent
 
-# is ref actual? why compare obj to actual
-# compare obj to other obj: raise/lower
-# write choice mechanism for fit, not only raise/lower
-
-#
-# def evaluation(obj, ref, pred, target):
-#     delta = abs(percent_error(obj, pred) - percent_error(ref, pred))
-#     print(f'delta is {delta}')
-#     return delta > target
-#
-
 
 def alter_power(power_array, add: bool):
+    # renew power array by adding 1 or minus 1
     print('-----altering power...')
     print(f'power is adding {add}')
     print(f'initial power_array is {power_array}')
@@ -71,6 +60,9 @@ def alter_power(power_array, add: bool):
 
 
 def apply_power(power_array, data_array):
+    # This function is designed for true() function
+    # returns modified data array by applying the power array ( [x1, x2, x3] -> [x1^n1, x2^n2, x3^n3] )
+    # use to generate proper input for linalg.solve() function
     print('-----applying power to data...')
     for j in data_array:
         for i in range(0, len(j)):
@@ -83,6 +75,7 @@ def apply_power(power_array, data_array):
 
 
 def true(data, d, itr, power_array):
+    # using linalg.solve() to solve for true weight array
     print('-----solving true parameters...')
     coeff_mat = []
     const_mat = []
@@ -100,6 +93,8 @@ def true(data, d, itr, power_array):
 
 
 def noise(data_array):
+    # adds noise to data by distorting numbers at a small scale
+    # mainly used to avoid singular matrix (unsolvable in true())
     print('-----noise adding...')
     random.seed = seed
     print(f'seed is {seed}')
@@ -116,6 +111,7 @@ def noise(data_array):
 
 
 def train_test_split(data, r):
+    # splits given data in ratio of r
     print(f'-----train test split function called. result will be {r} train and {1-r} test...')
     length = len(data)
     print(f'total length of data is {length}')
@@ -143,6 +139,7 @@ class Model:
         self.best_acc = 0
 
     def init_model(self):
+        # generates random initial weight
         print('-----initializing model...')
         d = self.dim
         weight_array = []
@@ -159,6 +156,7 @@ class Model:
         print('-----...initialization complete')
 
     def fit(self, replace=True):
+        # uses true() to call actual weight and make prediction based on actual weight and initial weight
         print(f'-----fitting starts, replacement is set to be {replace}...')
         lr = self.lr
         print(f'learning rate is {lr}')
@@ -190,6 +188,7 @@ class Model:
         print(f'-----...fitting complete. replaced {replace}')
 
     def update_true(self, data):
+        # updates true weight to class Model structure
         print('-----updating true...')
         weight_array, power_array = self.augmented_array
         dim = self.dim
@@ -197,6 +196,7 @@ class Model:
         print('-----...finished updating true')
 
     def empower(self, data_array, y, test):
+        # decides add, minus, or keep
         print('-----empowering...')
         y = y
         weight_array, power_array = self.augmented_array
@@ -273,6 +273,7 @@ class Model:
         print('-----...finished empowering')
 
     def train(self, data, test, max):
+        # outlines training of model
         print('---------------training starts...')
         length = len(data)
         print(f'the length of the data is {length}')
@@ -289,6 +290,7 @@ class Model:
         print('---------------...training complete-----------------------------------------------------------------------------------------------------------------------------------------')
 
     def predict(self, data_array, best=False):
+        # use current augmented array and test data to predict and average
         print('-----predicting starts...')
         print(self.augmented_array)
         print(self.best_weight)
