@@ -1,4 +1,4 @@
-from PolyReg import PolynomialRegv2 as pr
+import VHP.py as pr
 import openpyxl
 import random
 import matplotlib.pyplot as plt
