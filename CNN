@@ -1,0 +1,144 @@
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, Conv3D, MaxPooling3D
+import os
+import openpyxl
+import numpy as np
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, recall_score, precision_score, classification_report, confusion_matrix, \
+    cohen_kappa_score, ConfusionMatrixDisplay, root_mean_squared_error
+import cv2
+
+path = r'E:\Data\cnn clinical.xlsx'
+datadir = r'E:\Data\CNN FINAL'
+
+wb = openpyxl.load_workbook(path)
+sheet = wb.active
+
+max_row = sheet.max_row
+excel = []
+y05 = []
+y1 = []
+y3 = []
+y5 = []
+
+j = 0
+for i in range(2, max_row + 1):
+    # c2 = sheet.cell(row=i, column=2)
+    # age = float(c2.value)
+    #
+    # c6 = sheet.cell(row=i, column=6)
+    # stage = int(c6.value)
+    #
+    # c7 = sheet.cell(row=i, column=7)
+    # hist = int(c7.value)
+    #
+    # c8 = sheet.cell(row=i, column=8)
+    # gender = int(c8.value)
+    #
+    c9 = sheet.cell(row=i, column=9)
+    sur_time = int(c9.value)
+
+    # c10 = sheet.cell(row=i, column=10)
+    # death_status = int(c10.value)
+
+    # if death_status == 1:
+    # row_data = [age, stage, hist, gender]
+    # X.append(row_data)
+    if sur_time > 180:
+        y05.append(1)
+    else:
+        y05.append(0)
+
+    if sur_time > 365:
+        y1.append(1)
+    else:
+        y1.append(0)
+
+    if sur_time > 1095:
+        y3.append(1)
+    else:
+        y3.append(0)
+
+    if sur_time > 1825:
+        y5.append(1)
+    else:
+        y5.append(0)
+
+    j += 1
+    if j == 2:
+        break
+
+i = 0
+patient = []
+for patients in os.listdir(datadir):
+    i += 1
+    folderpath = os.path.join(datadir, patients)
+    # print(folderpath)
+    scansets = []
+    # print(patients)
+    for scans in os.listdir(folderpath):
+        image_path = os.path.join(folderpath, scans)
+        # print(image_path)
+        image_array = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        # print(image_array)
+        new_array = cv2.resize(image_array, (224, 224))
+        scansets.append(new_array)
+
+    # scansets = np.array(scansets)
+    patient.append(scansets)
+
+    if i == 2:
+        break
+
+
+data = np.asarray(patient).reshape(-1, 100, 224, 224, 1)
+# print(data)
+# print(data.shape)
+X_train, X_test, y_train, y_test = train_test_split(data, y05, test_size=0.5, random_state=123)
+# print(X_train.shape)
+# X_train = X_train.reshape(-1, 100, 224, 224, 1)
+# X_test = X_test.reshape(-1, 100, 224, 224, 1)
+# print(X_train)
+# X_train = X_train.reshape(X_train.shape[1:])
+# X_test = X_test.reshape(X_test.shape[1:])
+
+model = Sequential()
+
+model.add(  Conv3D(64, (3,3,3), input_shape = X_train.shape[1:])    )
+model.add(Activation('relu'))
+model.add(MaxPooling3D(pool_size=(2,2,2)))
+
+model.add(Conv3D(64, (3,3,3)))
+model.add(Activation('relu'))
+model.add(MaxPooling3D(pool_size=(2,2,2)))
+
+model.add(Flatten())
+model.add(Dense(64))
+model.add(Dense(1, activation = 'softmax'))
+
+model.compile(loss='categorical_crossentropy',
+              optimizer='adam',
+              metrics=['rmse'])
+
+model.fit(X_train, y_train, batch_size = 32)
+
+print(root_mean_squared_error(y_train, model.predict(X_train)))
+
+print(root_mean_squared_error(y_test, model.predict(X_test)))
+
+# plt.plot(history.history['accuracy'], label='Train')
+# plt.plot(history.history['val_accuracy'], label='Validation')
+# plt.title('Model Accuracy')
+# plt.ylabel('Accuracy')
+# plt.xlabel('Epoch')
+# plt.legend()
+# plt.show()
+#
+# plt.plot(history.history['loss'], label='Train')
+# plt.plot(history.history['val_loss'], label='Validation')
+# plt.title('Model Loss')
+# plt.ylabel('Loss')
+# plt.xlabel('Epoch')
+# plt.legend()
+# plt.show()
